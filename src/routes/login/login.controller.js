@@ -19,11 +19,10 @@ async function register(req, res) {
                 username: req.body.username,
                 password: password,
                 user_id: null,
-                is_admin: false,
                 is_active: true
             })
             account.save(account).then(data => {
-                res.status(201).send(data);
+                res.status(201).send({ message: `registered with username: ${data.username}` });
             }).catch(err => { res.status(500).send({ message: err.message || "ERROR!!!" }) })
         }
     }
@@ -41,7 +40,7 @@ async function login(req, res) {
             let loginPassword = await hashPass(req.body.password);
             if (bcrypt.compare(loginUser.password, loginPassword)) {
                 let token = await createToken(loginUser._id);
-                res.status(200).send({ token: token, user: loginUser });
+                res.status(200).send({ token: token, user: loginUser.user_id });
             } else {
                 res.status(401).send({ message: "Wrong password!!" });
             }
