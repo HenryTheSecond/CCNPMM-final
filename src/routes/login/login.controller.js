@@ -19,7 +19,8 @@ async function register(req, res) {
                 username: req.body.username,
                 password: password,
                 user_id: null,
-                is_active: true
+                is_active: true,
+                google_id: null
             })
             account.save(account).then(data => {
                 res.status(201).send({ message: `registered with username: ${data.username}` });

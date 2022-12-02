@@ -7,7 +7,8 @@ const Account = new Schema({
     user_id: Schema.Types.ObjectId,
     username: { type: String, require: true, unique: true },
     password: { type: String, require: true },
-    is_active: Boolean
+    is_active: Boolean,
+    google_id: String
 });
 
 module.exports = mongoose.model('Account', Account);
