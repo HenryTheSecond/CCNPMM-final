@@ -2,6 +2,8 @@ const cloudinary = require('cloudinary').v2
 const fs = require('fs')
 const imagesModel = require('../../models/images.model')
 const images = require('../../models/images.model')
+const {ObjectId} = require('mongodb')
+
 
 cloudinary.config({
     cloud_name: 'dihg72ez8',
@@ -22,16 +24,18 @@ async function uploadImage(req, res){
     const insertImagePromises = [] 
     const imagesDb = []
     const now = Date.now()
+    const descriptions = req.body.description ? JSON.parse(req.body.descriptions) : []
     if(req.files){
         for(let i = 0; i < req.files.length; i++){
             promises.push(cloudinary.uploader.upload(req.files[i].path, options)
                 .then(result => {
                     const newImage = new images({
-                        user_id: req.user,
+                        user_id: req.user._id,
                         url: result.secure_url,
                         created_date: now,
                         file_name: req.files[i].path,
-                        updated_date: null
+                        updated_date: null,
+                        description: descriptions[i] ? descriptions[i] : '' 
                     })
                     insertImagePromises.push(newImage.save().then(result => imagesDb.push(result)))
                 }))
@@ -43,50 +47,32 @@ async function uploadImage(req, res){
 }
 
 async function updateImages(req, res){
-    let indexStatus = 0
-    let indexImage = 0
-    const status = JSON.parse(req.body.status)
-    const images = req.files
-    const imagesDb = await imagesModel.find({user_id: req.user})
-    const uploadPromises = []
-    const insertPromise = []
-    const now = Date.now()
-    if(status.length != imagesDb.length){
-        res.status(400).send({ message: "Image quantity is invalid" });
+    const userPayload = req.user
+    const imageDb = await imagesModel.findOne({
+        _id: ObjectId(req.params.id),
+        user_id: ObjectId(userPayload._id)
+    })
+    console.log(req.params.id, userPayload._id, imageDb)
+    if(!imageDb){
+        return res.status(404).send({
+            message: 'NOT FOUND',
+        })
     }
-    for(; indexStatus < status.length; indexStatus++){
-        imagesDb[indexStatus].file_name.substring(8)
-        if(status[indexStatus] === 'DELETE'){
-            await cloudinary.uploader.destroy(imagesDb[indexStatus].file_name.substring(8))
-            await imagesModel.deleteOne({id: imagesDb[indexStatus].id})
-        } else if(status[indexStatus] === 'UPDATE'){
-            try{
-                await cloudinary.uploader.upload(req.files[indexImage].path, {
-                    public_id: imagesDb[indexStatus].file_name.substring(8),
-                    overwrite: true,
-                })
-                indexImage++
-            }catch(err){
-                console.log(err)
-            }
-        }
+    if(req.file){
+        await cloudinary.uploader.upload(req.file.path, {
+            public_id: imageDb.file_name.substring(8),
+            overwrite: true
+        }).then(result => imageDb.url = result.secure_url)
     }
-    for(let i = indexImage; i < images.length; i++){
-        uploadPromises.push(cloudinary.uploader.upload(req.files[i].path, options)
-                        .then(result => {
-                            const newImage = new images({
-                                user_id: req.user,
-                                url: result.secure_url,
-                                created_date: now,
-                                file_name: req.files[i].path,
-                                updated_date: null
-                            })
-                            insertPromise.push(newImage.save())
-                        }))
-    }
-    await Promise.all(uploadPromises)
-    await Promise.all(insertPromise)
-    return res.status(201).send(await imagesModel.find({user_id: req.user}))
+    imageDb.updated_date = Date.now()
+    imageDb.description = req.body.description ? req.body.description : imageDb.description
+    imageDb.save()
+    return res.status(200).send(imageDb)
+}
+
+async function deleteImage(req, res){
+    const userPayload = req.user
+    
 }
 
 module.exports = {

@@ -18,6 +18,6 @@ const storage = multer.diskStorage({
 const upload = multer({storage: storage}) 
 
 imagesRouter.post('/', authenticate, upload.any('images'), uploadImage)
-imagesRouter.put('/', authenticate, upload.any('images'), updateImages)
+imagesRouter.put('/:id', authenticate, upload.single('image'), updateImages)
 
 module.exports = imagesRouter
