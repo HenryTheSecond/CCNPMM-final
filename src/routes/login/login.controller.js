@@ -1,6 +1,7 @@
 const accounts = require('../../models/accounts.model')
 const bcrypt = require('bcrypt');
-const { hashPass, createToken } = require('../../helpers/jwt_helper')
+const { hashPass, createToken } = require('../../helpers/jwt_helper');
+const users = require('../../models/users.model');
 
 async function register(req, res) {
     if (!req.body) {
@@ -41,7 +42,25 @@ async function login(req, res) {
             let loginPassword = await hashPass(req.body.password);
             if (bcrypt.compare(loginUser.password, loginPassword)) {
                 let token = await createToken(loginUser._id);
-                res.status(200).send({ token: token, user: loginUser.user_id });
+                if (loginUser.user_id == null) {
+                    res.status(200).send({
+                        token: token, user: {
+                            _id: "",
+                            name: "",
+                            age: "",
+                            gender: "",
+                            address: "",
+                            phone: "",
+                            avatar: "",
+                            __v: ""
+                        }
+                    });
+                } else {
+                    let user = await users.findById(loginUser.user_id);
+                    res.status(200).send({
+                        token: token, user: user
+                    });
+                }
             } else {
                 res.status(401).send({ message: "Wrong password!!" });
             }
