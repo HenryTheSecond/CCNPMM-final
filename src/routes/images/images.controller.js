@@ -1,22 +1,8 @@
-const cloudinary = require('cloudinary').v2
+const {cloudinary, options} = require('../../helpers/cloudinary_helper')
 const fs = require('fs')
 const imagesModel = require('../../models/images.model')
 const images = require('../../models/images.model')
 const {ObjectId} = require('mongodb')
-
-
-cloudinary.config({
-    cloud_name: 'dihg72ez8',
-    api_key: '778719834247269',
-    api_secret: 'PDLuJVbklhnMWwR9p-GPo5gX2rA',
-    secure: true
-})
-
-const options = {
-    use_filename: true,
-    unique_filename: false,
-    overwrite: true,
-}
 
 async function uploadImage(req, res){
     console.log(req.user)
@@ -52,7 +38,6 @@ async function updateImages(req, res){
         _id: ObjectId(req.params.id),
         user_id: ObjectId(userPayload._id)
     })
-    console.log(req.params.id, userPayload._id, imageDb)
     if(!imageDb){
         return res.status(404).send({
             message: 'NOT FOUND',
@@ -72,10 +57,56 @@ async function updateImages(req, res){
 
 async function deleteImage(req, res){
     const userPayload = req.user
-    
+    const imageDb = await imagesModel.findOneAndDelete({
+        _id: ObjectId(req.params.id),
+        user_id: ObjectId(userPayload._id)
+    })
+    if(!imageDb){
+        return res.status(404).send({
+            message: 'NOT FOUND',
+        })
+    }
+    var result = await cloudinary.uploader.destroy(imageDb.file_name.substring(8))
+    if(result['result'] == 'ok'){
+        return res.status(200).send({
+            message: 'SUCCESSFUL'
+        })
+    }
+    return res.status(400).send({
+        message: 'FAILED',
+    })
+}
+
+async function getImageById(req, res){
+    const userPayload = req.user
+    const imageDb = await imagesModel.findOne({
+        _id: ObjectId(req.params.id),
+        user_id: ObjectId(userPayload._id)
+    })
+    if(!imageDb){
+        return res.status(404).send({
+            message: 'NOT FOUND',
+        })
+    }
+    return res.status(200).send(imageDb)
+}
+
+async function getImage(req, res){
+    const userPayload = req.user
+    var page = Number.parseInt(req.query.page)
+    var pageSize = Number.parseInt(req.query.pageSize)
+    page = page ? (page > 0 ? page : 1) : 1
+    pageSize = pageSize ? (pageSize > 0 ? pageSize : 5) :5
+    const imagesDb = await imagesModel.find({
+        user_id: ObjectId(userPayload._id)
+    }).skip((page - 1)*pageSize).limit(pageSize)
+    return res.status(200).send(imagesDb)
 }
 
 module.exports = {
     uploadImage,
-    updateImages
+    updateImages,
+    deleteImage,
+    getImageById,
+    getImage
 }

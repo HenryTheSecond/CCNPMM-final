@@ -1,11 +1,14 @@
 const express = require('express')
 const { authenticate } = require('../../helpers/jwt_helper');
-const { uploadImage, updateImages } = require('./images.controller')
+const { uploadImage, updateImages, deleteImage, getImageById, getImage } = require('./images.controller')
 const { upload } = require('../../helpers/upload_helper')
 
 const imagesRouter = express.Router()
 
+imagesRouter.get('/:id', authenticate, getImageById)
+imagesRouter.get('/', authenticate, getImage)
 imagesRouter.post('/', authenticate, upload.any('images'), uploadImage)
 imagesRouter.put('/:id', authenticate, upload.single('image'), updateImages)
+imagesRouter.delete('/:id', authenticate, deleteImage)
 
 module.exports = imagesRouter
