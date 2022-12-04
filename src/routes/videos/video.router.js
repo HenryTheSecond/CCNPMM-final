@@ -1,4 +1,4 @@
-const {updateVideos, uploadVideo, deleteImage, getVideoById, getVideo} = require('./video.controller')
+const {updateVideos, uploadVideo, deleteImage, getVideoById, getVideo, getAllVideo} = require('./video.controller')
 const express = require('express')
 const { authenticate } = require('../../helpers/jwt_helper');
 const { upload } = require('../../helpers/upload_helper')
@@ -7,6 +7,7 @@ const videosRouter = express.Router()
 
 
 videosRouter.get('/', authenticate, getVideo)
+videosRouter.get('/getAll', authenticate, getAllVideo)
 videosRouter.get('/:id', authenticate, getVideoById)
 videosRouter.post('/', authenticate, upload.any('videos'), uploadVideo)
 videosRouter.put('/:id', authenticate, upload.single('video'), updateVideos)

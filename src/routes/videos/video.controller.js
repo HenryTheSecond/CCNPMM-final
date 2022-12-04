@@ -109,4 +109,12 @@ async function getVideo(req, res){
     return res.status(200).send(videosDb)
 }
 
-module.exports = {uploadVideo, updateVideos, deleteImage, getVideoById, getVideo}
+async function getAllVideo(req, res){
+    const userPayload = req.user
+    const videosDb = await videoModel.find({
+        user_id: ObjectId(userPayload._id)
+    })
+    return res.status(200).send(videosDb)
+}
+
+module.exports = {uploadVideo, updateVideos, deleteImage, getVideoById, getVideo, getAllVideo}

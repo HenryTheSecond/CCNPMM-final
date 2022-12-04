@@ -103,10 +103,19 @@ async function getImage(req, res){
     return res.status(200).send(imagesDb)
 }
 
+async function getAllImage(req, res){
+    const userPayload = req.user
+    const imagesDb = await imagesModel.find({
+        user_id: ObjectId(userPayload._id)
+    })
+    return res.status(200).send(imagesDb)
+}
+
 module.exports = {
     uploadImage,
     updateImages,
     deleteImage,
     getImageById,
-    getImage
+    getImage,
+    getAllImage
 }
