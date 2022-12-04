@@ -7,6 +7,7 @@ const passport = require('passport');
 const accounts = require('./models/accounts.model')
 const { createToken } = require('./helpers/jwt_helper')
 const cookieSession = require('cookie-session')
+const { v4: uuidv4 } = require('uuid')
 
 const api = require('./routes/api');
 
@@ -29,7 +30,8 @@ app.use(cookieSession({
 app.use(passport.initialize());
 app.use(passport.session());
 
-const { Strategy } = require('passport-google-oauth20')
+const { Strategy } = require('passport-google-oauth20');
+const usersModel = require('./models/users.model');
 
 const config = {
   CLIENT_ID: "1088807457031-5md48gqoogfvv9khttne71mgppc2lk68.apps.googleusercontent.com",
@@ -77,7 +79,7 @@ app.use('/success', async (req, res) => {
   let isLoginBefore = await accounts.findOne({ google_id: req.user });
   if (!isLoginBefore) {
     const account = new accounts({
-      username: null,
+      username: uuidv4(),
       password: null,
       user_id: null,
       is_active: true,
@@ -85,11 +87,43 @@ app.use('/success', async (req, res) => {
     })
     account.save(account).then(async data => {
       let token = await createToken(data._id);
-      res.status(200).send({ message: "Login google success", token: token })
+      res.status(200).send({
+        message: "Login google success",
+        token: token,
+        user: {
+          _id: "",
+          name: "",
+          age: "",
+          gender: "",
+          address: "",
+          phone: "",
+          avatar: "",
+          __v: ""
+        }
+      })
     })
   } else {
     let token = await createToken(isLoginBefore._id);
-    res.status(200).send({ token: token });
+    if (isLoginBefore.user_id == null) {
+      res.status(200).send({
+        token: token,
+        user: {
+          _id: "",
+          name: "",
+          age: "",
+          gender: "",
+          address: "",
+          phone: "",
+          avatar: "",
+          __v: ""
+        }
+      });
+    } else {
+      let user = await usersModel.findById(isLoginBefore.user_id);
+      res.status(200).send({
+        token: token, user: user
+      });
+    }
   }
 })
 
