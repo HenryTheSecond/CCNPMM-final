@@ -1,8 +1,21 @@
-const {cloudinary, options} = require('../../helpers/cloudinary_helper')
 const fs = require('fs')
 const imagesModel = require('../../models/images.model')
 const images = require('../../models/images.model')
 const {ObjectId} = require('mongodb')
+const cloudinary = require('cloudinary').v2
+
+cloudinary.config({
+    cloud_name: 'ddw86pztr',
+    api_key: '489295679683823',
+    api_secret: 'xlgdkFV2l97ND_uwo-IEhxwt2qA',
+    secure: true
+})
+
+const options = {
+    use_filename: true,
+    unique_filename: false,
+    overwrite: true,
+}
 
 async function uploadImage(req, res){
     console.log(req.user)
@@ -12,22 +25,30 @@ async function uploadImage(req, res){
     const now = Date.now()
     const descriptions = req.body.description ? JSON.parse(req.body.descriptions) : []
     if(req.files){
-        for(let i = 0; i < req.files.length; i++){
-            promises.push(cloudinary.uploader.upload(req.files[i].path, options)
-                .then(result => {
-                    const newImage = new images({
-                        user_id: req.user._id,
-                        url: result.secure_url,
-                        created_date: now,
-                        file_name: req.files[i].path,
-                        updated_date: null,
-                        description: descriptions[i] ? descriptions[i] : '' 
-                    })
-                    insertImagePromises.push(newImage.save().then(result => imagesDb.push(result)))
-                }))
-        }   
-        await Promise.all(promises)
-        await Promise.all(insertImagePromises)
+        try{
+            for(let i = 0; i < req.files.length; i++){
+                promises.push(cloudinary.uploader.upload(req.files[i].path, options)
+                    .then(result => {
+                        const newImage = new images({
+                            user_id: req.user._id,
+                            url: result.secure_url,
+                            created_date: now,
+                            file_name: req.files[i].path,
+                            updated_date: null,
+                            description: descriptions[i] ? descriptions[i] : '' 
+                        })
+                        insertImagePromises.push(newImage.save().then(result => imagesDb.push(result)))
+                    }))
+            }  
+        }catch(err){
+            console.log(err)
+        } 
+        try{
+            await Promise.all(promises)
+            await Promise.all(insertImagePromises)
+        }catch(err){
+            console.log(err)
+        }
         return res.status(201).send(imagesDb)
     }
 }

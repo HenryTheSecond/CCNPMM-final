@@ -1,8 +1,21 @@
-const {cloudinary, options} = require('../../helpers/cloudinary_helper')
 const fs = require('fs')
 const {ObjectId} = require('mongodb')
 const videoModel = require('../../models/videos.model')
 const { model } = require('mongoose')
+const cloudinary = require('cloudinary').v2
+
+cloudinary.config({
+    cloud_name: 'ddw86pztr',
+    api_key: '489295679683823',
+    api_secret: 'xlgdkFV2l97ND_uwo-IEhxwt2qA',
+    secure: true
+})
+
+const options = {
+    use_filename: true,
+    unique_filename: false,
+    overwrite: true,
+}
 
 options['resource_type'] = 'video'
 
