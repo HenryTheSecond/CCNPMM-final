@@ -29,32 +29,63 @@ async function firstLogin(req, res) {
             res.status(500).send({ message: "User infomation alr registed" });
         } else {
             let id = new mongoose.Types.ObjectId();
-            let avt = await cloudinary.uploader.upload(req.file.path, options)
-            let avtUrl = await avt.secure_url;
-            const session = await mongoose.startSession();
-            session.startTransaction();
-            try {
-                const opts = { session };
-                const account = await accounts.findByIdAndUpdate(loginUser._id, { user_id: id }, opts);
-                const user = await users({
-                    _id: id,
-                    name: req.body.name,
-                    age: req.body.age,
-                    gender: req.body.gender,
-                    address: req.body.address,
-                    phone: req.body.phone,
-                    avatar: avtUrl
-                }).save(opts);
+            if (req.file) {
+                let avtUrl;
+                await cloudinary.uploader.upload(req.file.path, options).then(result => {
+                    avtUrl = result.secure_url
+                }).catch(err => {
+                    console.log(err);
+                })
+                const session = await mongoose.startSession();
+                session.startTransaction();
+                try {
+                    const opts = { session };
+                    const account = await accounts.findByIdAndUpdate(loginUser._id, { user_id: id }, opts);
+                    const user = await users({
+                        _id: id,
+                        name: req.body.name,
+                        age: req.body.age,
+                        gender: req.body.gender,
+                        address: req.body.address,
+                        phone: req.body.phone,
+                        avatar: avtUrl
+                    }).save(opts);
 
-                await session.commitTransaction();
-                session.endSession();
-                res.status(200).send({ user: user })
-            } catch (error) {
-                // If an error occurred, abort the whole transaction and
-                // undo any changes that might have happened
-                await session.abortTransaction();
-                session.endSession();
-                res.status(500).send(error);
+                    await session.commitTransaction();
+                    session.endSession();
+                    res.status(200).send({ user: user })
+                } catch (error) {
+                    // If an error occurred, abort the whole transaction and
+                    // undo any changes that might have happened
+                    await session.abortTransaction();
+                    session.endSession();
+                    res.status(500).send(error);
+                }
+            } else {
+                const session = await mongoose.startSession();
+                session.startTransaction();
+                try {
+                    const opts = { session };
+                    const account = await accounts.findByIdAndUpdate(loginUser._id, { user_id: id }, opts);
+                    const user = await users({
+                        _id: id,
+                        name: req.body.name,
+                        age: req.body.age,
+                        gender: req.body.gender,
+                        address: req.body.address,
+                        phone: req.body.phone,
+                    }).save(opts);
+
+                    await session.commitTransaction();
+                    session.endSession();
+                    res.status(200).send({ user: user })
+                } catch (error) {
+                    // If an error occurred, abort the whole transaction and
+                    // undo any changes that might have happened
+                    await session.abortTransaction();
+                    session.endSession();
+                    res.status(500).send(error);
+                }
             }
         }
     }
@@ -88,25 +119,44 @@ async function updateUser(req, res) {
         } else {
             let loginUser = await accounts.findOne({ _id: req.user, is_active: true });
             let id = await loginUser.user_id;
-            cloudinary.uploader.upload(req.file.path, options)
-                .then(result => {
-                    users.findByIdAndUpdate(id, {
-                        name: req.body.name,
-                        age: req.body.age,
-                        gender: req.body.gender,
-                        address: req.body.address,
-                        phone: req.body.phone,
-                        avatar: result.secure_url
-                    }).then(data => {
-                        if (!data) {
-                            res.status(404).send({ message: "Not found!!" });
-                        } else {
-                            res.status(200).send({ message: "Updated!!" });
-                        }
-                    }).catch(err => {
-                        res.status(500).send(err);
+            if (req.file) {
+                cloudinary.uploader.upload(req.file.path, options)
+                    .then(result => {
+                        users.findByIdAndUpdate(id, {
+                            name: req.body.name,
+                            age: req.body.age,
+                            gender: req.body.gender,
+                            address: req.body.address,
+                            phone: req.body.phone,
+                            avatar: result.secure_url
+                        }).then(data => {
+                            if (!data) {
+                                res.status(404).send({ message: "Not found!!" });
+                            } else {
+                                res.status(200).send({ message: "Updated!!" });
+                            }
+                        }).catch(err => {
+                            res.status(500).send(err);
+                        })
                     })
+            }
+            else {
+                users.findByIdAndUpdate(id, {
+                    name: req.body.name,
+                    age: req.body.age,
+                    gender: req.body.gender,
+                    address: req.body.address,
+                    phone: req.body.phone,
+                }).then(data => {
+                    if (!data) {
+                        res.status(404).send({ message: "Not found!!" });
+                    } else {
+                        res.status(200).send({ message: "Updated!!" });
+                    }
+                }).catch(err => {
+                    res.status(500).send(err);
                 })
+            }
         }
     }
 }

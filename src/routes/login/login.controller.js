@@ -2,6 +2,8 @@ const accounts = require('../../models/accounts.model')
 const bcrypt = require('bcrypt');
 const { hashPass, createToken } = require('../../helpers/jwt_helper');
 const users = require('../../models/users.model');
+const usersModel = require('../../models/users.model');
+const { v4: uuidv4 } = require('uuid')
 
 async function register(req, res) {
     if (!req.body) {
@@ -68,7 +70,61 @@ async function login(req, res) {
     }
 }
 
+async function loginGoogle(req, res) {
+    let isLoginBefore = await accounts.findOne({ google_id: req.body.google_id });
+    console.log(req.body.google_id);
+    if (!isLoginBefore) {
+        const account = new accounts({
+            username: uuidv4(),
+            password: null,
+            user_id: null,
+            is_active: true,
+            google_id: req.body.google_id
+        })
+        account.save(account).then(async data => {
+            let token = await createToken(data._id);
+            res.status(200).send({
+                message: "Login google success",
+                token: token,
+                user: {
+                    _id: "",
+                    name: "",
+                    age: "",
+                    gender: "",
+                    address: "",
+                    phone: "",
+                    avatar: "",
+                    __v: ""
+                }
+            })
+        })
+    } else {
+        let token = await createToken(isLoginBefore._id);
+        if (isLoginBefore.user_id == null) {
+            res.status(200).send({
+                token: token,
+                user: {
+                    _id: "",
+                    name: "",
+                    age: "",
+                    gender: "",
+                    address: "",
+                    phone: "",
+                    avatar: "",
+                    __v: ""
+                }
+            });
+        } else {
+            let user = await usersModel.findById(isLoginBefore.user_id);
+            res.status(200).send({
+                token: token, user: user
+            });
+        }
+    }
+}
+
 module.exports = {
     register,
     login,
+    loginGoogle
 };
